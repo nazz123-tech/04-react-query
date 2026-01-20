@@ -11,16 +11,20 @@ const API_URL = "https://api.themoviedb.org/3/search/movie";
 
 const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN;
 
-interface FetchMoviesParams {
-  query: string;
-  page?: number;
-}
 
 export const fetchMovies = async (
-  params: FetchMoviesParams
+  query: string,
+  page: number = 1
 ): Promise<MoviesResponse> => {
+  if (!TMDB_TOKEN) {
+    throw new Error('TMDB token is missing');
+  }
+
   const response = await axios.get<MoviesResponse>(API_URL, {
-    params,
+    params: {
+      query,
+      page
+    },
     headers: {
       accept: 'application/json',
       Authorization: `Bearer ${TMDB_TOKEN}`,

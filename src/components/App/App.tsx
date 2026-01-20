@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import toast, { Toaster } from 'react-hot-toast';
+import css from './App.module.css'
 import 'modern-normalize';
 import SearchBar from '../SearchBar/SearchBar';
 import { fetchMovies } from "../../services/movieService"
@@ -8,13 +8,13 @@ import Loader from '../Loader/Loader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import MovieGrid from '../MovieGrid/MovieGrid';
 import MovieModal from '../MovieModal/MovieModal';
-
+import ReactPaginate from 'react-paginate';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
 export default function App() {
-  const [movies, setMovies] = useState<Movie[]>([]);
+  const [query, setQuery] = useState('');
+  const [currentPage, setCurrentPage]=useState(1)
   const [selectedMovie,setSelectedMovie]=useState<Movie| null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false); 
-  const [isError, setIsError]= useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const closeModal = () => {
     setIsModalOpen(false);
@@ -25,38 +25,36 @@ export default function App() {
     setSelectedMovie(movie)
   }
 
+  const { data, isSuccess,isError,isLoading } = useQuery({
+    queryKey: ['articles', query, currentPage],
+    queryFn: () => fetchMovies(query, currentPage ),
+    enabled: query!='',
+    placeholderData: keepPreviousData,
+  });
  
-  const handleSearch = async (query: string) => {
-  setMovies([]);
+  const handleSearch = async (searchQuery: string) => {
   setSelectedMovie(null)
-  setIsLoading(true);
-  setIsError(false);
-
-  try {
-    const data = await fetchMovies({ query });
-
-    if (data.results.length === 0) {
-      toast.error("No movies found for your request.");
-      return;
-    }
-
-    setMovies(data.results);
-  } catch {
-    setIsError(true);
-    toast.error("Something went wrong. Try again.");
-  } finally {
-    setIsLoading(false);
-  }
+  setCurrentPage(1);
+  setQuery(searchQuery)
 }
-
-
+const totalPages=data?.total_pages ?? 0;
+ const movies: Movie[] = data?.results ?? [];
   return (
     <>
-       <Toaster
-      position="top-center"
-      reverseOrder={false}
-      />
       <SearchBar onSubmit={handleSearch}/>
+      {isSuccess && totalPages>1 && (
+        <ReactPaginate
+        pageCount={totalPages}
+        pageRangeDisplayed={5}
+        marginPagesDisplayed={1}
+        onPageChange={({ selected }) => setCurrentPage(selected + 1)}
+        forcePage={currentPage - 1}
+        containerClassName={css.pagination}
+        activeClassName={css.active}
+        nextLabel="→"
+        previousLabel="←"
+        />
+      )}
       {isLoading && <Loader/>}
       {isError && <ErrorMessage />}
       {!isError && movies.length > 0 && (
