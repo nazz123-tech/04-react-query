@@ -10,6 +10,7 @@ import MovieGrid from '../MovieGrid/MovieGrid';
 import MovieModal from '../MovieModal/MovieModal';
 import ReactPaginate from 'react-paginate';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
 export default function App() {
   const [query, setQuery] = useState('');
@@ -26,7 +27,7 @@ export default function App() {
   }
 
   const { data, isSuccess,isError,isLoading } = useQuery({
-    queryKey: ['articles', query, currentPage],
+    queryKey: ['movies', query, currentPage],
     queryFn: () => fetchMovies(query, currentPage ),
     enabled: query!='',
     placeholderData: keepPreviousData,
@@ -39,8 +40,10 @@ export default function App() {
 }
 const totalPages=data?.total_pages ?? 0;
  const movies: Movie[] = data?.results ?? [];
+ const noMovies = movies.length == 0;
+ 
   return (
-    <>
+    <> 
       <SearchBar onSubmit={handleSearch}/>
       {isSuccess && totalPages>1 && (
         <ReactPaginate
@@ -55,6 +58,7 @@ const totalPages=data?.total_pages ?? 0;
         previousLabel="←"
         />
       )}
+      {isSuccess && noMovies && toast.error("No movies found for your request.")}
       {isLoading && <Loader/>}
       {isError && <ErrorMessage />}
       {!isError && movies.length > 0 && (
